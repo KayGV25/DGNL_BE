@@ -7,7 +7,8 @@ public record NewUserDTO(
     Integer yob,
     Integer mob,
     Integer dob,
-    Integer gradeLv
+    Integer gradeLv,
+    Integer roleId
 ) {
 
 }

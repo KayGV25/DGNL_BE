@@ -1,6 +1,7 @@
 package com.dgnl_backend.project.dgnl_backend.services;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,7 +19,7 @@ public class UserDetailService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String id) throws UsernameNotFoundException {
-        Optional<User> user = userRepository.findByUsername(id);
+        Optional<User> user = userRepository.findById(UUID.fromString(id));
         if (user.isPresent()) {
             return org.springframework.security.core.userdetails.User.builder()
                     .username(user.get().getUsername())

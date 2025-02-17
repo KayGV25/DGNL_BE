@@ -12,7 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "user", schema = "public")
+@Table(name = "users", schema = "public")
 public class User {
 
     @Id
@@ -52,6 +52,14 @@ public class User {
         this.dob = dob;
         this.gradeLv = gradeLv;
         this.genderId = genderId;
+    }
+    public User(String username, String password, Integer genderId, Date dob, Integer gradeLv, Integer roleId) {
+        this.username = username;
+        this.password = password;
+        this.dob = dob;
+        this.gradeLv = gradeLv;
+        this.genderId = genderId;
+        this.roleId = roleId;
     }
 
     // Getters and Setters

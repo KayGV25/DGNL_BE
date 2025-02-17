@@ -28,13 +28,13 @@ public class JWTUtils {
         return null;
     }
 
-    public String generate(String userId) {
+    public String generate(String userId, Integer ttls) {
         Date currentDate = new Date();
         long currentTime = currentDate.getTime();
         return Jwts.builder()
             .subject(userId)
             .issuedAt(currentDate)
-            .expiration(new Date(currentTime + 1000*(60*60*5))) // ttl = 5 hours
+            .expiration(new Date(currentTime + ttls)) // ttl = 1 year
             .encryptWith(createKey(secret), Jwts.ENC.A256GCM)
             .compact();
     }

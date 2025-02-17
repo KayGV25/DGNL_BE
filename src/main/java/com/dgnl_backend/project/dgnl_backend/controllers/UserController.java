@@ -59,6 +59,4 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new LoginUserResponseDTO(null, "An error occurred while logging in."));
         }
     }
-    
-    
 }

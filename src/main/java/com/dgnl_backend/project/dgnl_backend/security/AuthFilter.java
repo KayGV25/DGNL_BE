@@ -7,16 +7,15 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.dgnl_backend.project.dgnl_backend.repositories.TokenRepository;
 import com.dgnl_backend.project.dgnl_backend.services.UserDetailService;
 import com.dgnl_backend.project.dgnl_backend.utils.JWTUtils;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.MalformedJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,6 +26,8 @@ public class AuthFilter extends OncePerRequestFilter{
 
     @Autowired
     private UserDetailService userDetailService;
+    @Autowired
+    private TokenRepository tokenRepository;
 
     @Autowired
     private JWTUtils jwtUtils;
@@ -39,12 +40,10 @@ public class AuthFilter extends OncePerRequestFilter{
             throws ServletException, IOException {
 
         String token = request.getHeader("Authorization");
-        if (token!=null && !token.isBlank()) {
+        if (token!=null && !token.isBlank() && tokenRepository.existsByToken(token)) {
             try{
                 Claims claims = jwtUtils.decode(token);
                 String id = claims.getSubject();
-
-                // we can parse the username from the provided token, let's authenticate this user 
                 
                 UserDetails userDetails = userDetailService.loadUserByUsername(id);
 
@@ -54,12 +53,11 @@ public class AuthFilter extends OncePerRequestFilter{
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
-            catch (MalformedJwtException e){
+            catch (Exception e){
+                System.out.println(e.getMessage());
                 return;
             }
-            catch (UsernameNotFoundException e){
-                return;
-            }
+
         }
 
         filterChain.doFilter(request, response);
