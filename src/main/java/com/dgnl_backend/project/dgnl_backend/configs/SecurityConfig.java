@@ -24,8 +24,12 @@ public class SecurityConfig {
                     sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
                 })
             .authorizeHttpRequests(rq->
-                rq.requestMatchers("/api/**").permitAll()
+                rq
+                .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/teacher/**").hasAnyRole("ADMIN", "TEACHER")
                 .requestMatchers("/auth/**").authenticated()
+                .requestMatchers("/api/**").permitAll()
+                .anyRequest().denyAll()
             )
             .addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class)
             .build();

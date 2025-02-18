@@ -16,9 +16,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+
 
 
 
@@ -35,6 +37,16 @@ public class UserController {
         return ResponseEntity.ok(userService.getUsersInfo());
     }
 
+    @GetMapping("/{userId}")
+    public ResponseEntity<?> getMethodName(@PathVariable String userId) {
+        try {
+            return ResponseEntity.ok(userService.getUserInfo(userId));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+    
+
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody NewUserDTO newUser) {
         try {
@@ -46,17 +58,17 @@ public class UserController {
     }
     
     @PostMapping("/login")
-    public ResponseEntity<LoginUserResponseDTO> login(@RequestBody LoginUserDTO user) {
+    public ResponseEntity<?> login(@RequestBody LoginUserDTO user) {
         try {
-            LoginUserResponseDTO res = userService.login(user);
+            LoginUserResponseDTO res = userService.login(user).data();
             return ResponseEntity.ok(res);
         } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new LoginUserResponseDTO(null, "Invalid username"));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Invalid username");
         } catch (PasswordMissMatchException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new LoginUserResponseDTO(null, "Wrong password."));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Wrong password.");
 
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new LoginUserResponseDTO(null, "An error occurred while logging in."));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while logging in.");
         }
     }
 }
