@@ -19,6 +19,7 @@ import com.dgnl_backend.project.dgnl_backend.exceptions.gender.GenderNotFoundExc
 import com.dgnl_backend.project.dgnl_backend.exceptions.role.RoleNotFoundException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.token.TokenNotFoundException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.user.PasswordMissMatchException;
+import com.dgnl_backend.project.dgnl_backend.exceptions.user.UserNotEnableException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.user.UserNotFoundException;
 import com.dgnl_backend.project.dgnl_backend.repositories.GenderRepository;
 import com.dgnl_backend.project.dgnl_backend.repositories.RoleRepository;
@@ -26,7 +27,6 @@ import com.dgnl_backend.project.dgnl_backend.repositories.TokenRepository;
 import com.dgnl_backend.project.dgnl_backend.repositories.UserRepository;
 import com.dgnl_backend.project.dgnl_backend.schemas.Gender;
 import com.dgnl_backend.project.dgnl_backend.schemas.Role;
-import com.dgnl_backend.project.dgnl_backend.schemas.Token;
 import com.dgnl_backend.project.dgnl_backend.schemas.User;
 import com.dgnl_backend.project.dgnl_backend.utils.JWTUtils;
 import com.dgnl_backend.project.dgnl_backend.utils.SecurityUtils;
@@ -46,6 +46,11 @@ public class UserService {
     @Autowired
     private JWTUtils jwtUtils;
 
+    @Autowired
+    private VerificationService verificationService;
+    @Autowired
+    private RedisService redisService;
+
 
     public List<User> getUsersInfo() {
         return userRepository.findAll();
@@ -59,6 +64,7 @@ public class UserService {
         Date dob = Date.valueOf(localDate);
         User user = new User(
             newUser.username(),
+            newUser.email(),
             SecurityUtils.hashPassword(newUser.password()),
             newUser.genderId(),
             dob,
@@ -66,22 +72,31 @@ public class UserService {
             newUser.roleId()
             );
         userRepository.save(user);
+        verificationService.sendVerificationEmail(user);
     }
 
-    public ResponseTemplate<LoginUserResponseDTO> login(LoginUserDTO loginUser) {
+    public ResponseTemplate<?> login(LoginUserDTO loginUser) {
         Optional<User> user = userRepository.findByUsername(loginUser.username());
         if(!user.isPresent()) throw new UserNotFoundException("Username does not exist");
+        if(!user.get().getIsEnable()) throw new UserNotEnableException("User is disabled");
         if(!SecurityUtils.matchesPassword(loginUser.password(), user.get().getPassword())) throw new PasswordMissMatchException("Invalid password");
         // If token already exists, then return that token (enable multi device login, using the same token)
-        if(tokenRepository.existsByUserId(user.get().getId())){
-            return new ResponseTemplate<LoginUserResponseDTO>(
-                new LoginUserResponseDTO(tokenRepository.findByUserId(user.get().getId()).getToken()), 
-                "Login successful");
+        if(tokenRepository.existsByUserId(user.get().getId()) 
+            && jwtUtils.isValid(tokenRepository.findByUserId(user.get().getId()).get().getToken())){
+                return new ResponseTemplate<LoginUserResponseDTO>(
+                    new LoginUserResponseDTO(tokenRepository.findByUserId(user.get().getId()).get().getToken()), 
+                    "Login successful");
         }
         // If token does not exist, then generate a new token and save it in the database
-        String token = jwtUtils.generate(user.get().getId().toString(), 1000*(60*60*24*365));
-        tokenRepository.save(new Token(user.get().getId(), token));
-        return new ResponseTemplate<LoginUserResponseDTO>(new LoginUserResponseDTO(token), "Login successful");
+        // Before generating a new token, send otp to the user, check if that user has verified the otp 
+        // If user has verified the otp, then generate a new token and save it in the database
+
+        // Generate and send OTP (Only if user is logging in for the first time or token is expired)
+        String otp = verificationService.generateOtp(user.get());  // Generate OTP and send to user's email
+
+        // Save OTP to Redis or database with an expiration time of 3 minutes
+        redisService.saveOtp(otp, user.get().getUsername());
+        return new ResponseTemplate<String>(null, "OTP sent to your email. Please verify to complete the login process.");
     }
 
     @Transactional

@@ -23,6 +23,9 @@ public class User {
     @Column(name = "username", nullable = false, unique = true, length = 50)
     private String username;
 
+    @Column(name = "email", nullable = false, unique = true, length = 50)
+    private String email;
+
     @Column(name = "password", nullable = false)
     @JsonIgnore
     private String password;
@@ -44,17 +47,22 @@ public class User {
     @JsonIgnore
     private Integer roleId;
 
+    @Column(name = "is_enable", nullable = false)
+    private Boolean isEnable = false;
+
     public User(){}
 
-    public User(String username, String password, Integer genderId, Date dob, Integer gradeLv) {
+    public User(String username, String email, String password, Integer genderId, Date dob, Integer gradeLv) {
         this.username = username;
+        this.email = email;
         this.password = password;
         this.dob = dob;
         this.gradeLv = gradeLv;
         this.genderId = genderId;
     }
-    public User(String username, String password, Integer genderId, Date dob, Integer gradeLv, Integer roleId) {
+    public User(String username, String email, String password, Integer genderId, Date dob, Integer gradeLv, Integer roleId) {
         this.username = username;
+        this.email = email;
         this.password = password;
         this.dob = dob;
         this.gradeLv = gradeLv;
@@ -77,6 +85,14 @@ public class User {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getEmail(){
+        return this.email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getPassword() {
@@ -126,4 +142,13 @@ public class User {
     public void setRoleId(Integer roleId) {
         this.roleId = roleId;
     }
+
+    public Boolean getIsEnable(){
+        return this.isEnable;
+    }
+
+    public void setIsEnable(Boolean isEnable){
+        this.isEnable = isEnable;
+    }
+
 }

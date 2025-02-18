@@ -8,8 +8,10 @@ import org.springframework.stereotype.Repository;
 
 import com.dgnl_backend.project.dgnl_backend.schemas.User;
 
+
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
     Boolean existsByUsername(String username);
     Optional<User> findByUsername(String username);
+    Optional<User> findByEmail(String email);
 }

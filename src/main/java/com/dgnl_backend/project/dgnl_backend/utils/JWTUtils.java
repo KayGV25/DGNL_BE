@@ -47,4 +47,11 @@ public class JWTUtils {
             .parse(token)
             .getPayload();
     }
+
+    public Boolean isValid(String token) {
+        Claims claims = decode(token);
+        if(!claims.getExpiration().before(new Date())) return true;
+        return false;
+    }
+
 }
