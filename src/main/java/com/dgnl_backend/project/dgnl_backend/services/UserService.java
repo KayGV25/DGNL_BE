@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -107,13 +108,14 @@ public class UserService {
         } else throw new TokenNotFoundException("No token found");
     }
 
+    @Cacheable("user")
     public ResponseTemplate<UserInfoResponseDTO> getUserInfo(String userId) {
         Optional<User> user = userRepository.findById(UUID.fromString(userId));
         if (!user.isPresent()) throw new UserNotFoundException("User not found with id" + userId);
         Optional<Gender> gender = genderRepository.findById(user.get().getGenderId());
         if(!gender.isPresent()) throw new GenderNotFoundException("Gender not found with id" + user.get().getGenderId());
         Optional<Role> role = roleRepository.findById(user.get().getRoleId());
-        if(!role.isPresent()) throw new RoleNotFoundException("Role not found with id" + user.get().getGenderId());
+        if(!role.isPresent()) throw new RoleNotFoundException("Role not found with id" + user.get().getRoleId());
         UserInfoResponseDTO userInfo = new UserInfoResponseDTO(
             user.get().getUsername(), 
             gender.get().getGenderType(), 
