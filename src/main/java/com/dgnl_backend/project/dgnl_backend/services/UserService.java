@@ -32,37 +32,57 @@ import com.dgnl_backend.project.dgnl_backend.schemas.User;
 import com.dgnl_backend.project.dgnl_backend.utils.JWTUtils;
 import com.dgnl_backend.project.dgnl_backend.utils.SecurityUtils;
 
+/**
+ * Service class responsible for user-related operations such as registration, 
+ * authentication, and retrieving user details.
+ */
 @Service
 public class UserService {
 
     @Autowired
-    private UserRepository userRepository; 
+    private UserRepository userRepository; // Repository for user management
     @Autowired
-    private TokenRepository tokenRepository;
+    private TokenRepository tokenRepository; // Repository for authentication tokens
     @Autowired
-    private GenderRepository genderRepository;
+    private GenderRepository genderRepository; // Repository for gender data
     @Autowired
-    private RoleRepository roleRepository;
+    private RoleRepository roleRepository; // Repository for roles
 
     @Autowired
-    private JWTUtils jwtUtils;
+    private JWTUtils jwtUtils; // Utility for JWT token management
 
     @Autowired
-    private VerificationService verificationService;
+    private VerificationService verificationService; // Service for email verification
     @Autowired
-    private RedisService redisService;
+    private RedisService redisService; // Service for managing OTP storage in Redis
 
-
+    /**
+     * Retrieves a list of all users from the database.
+     * 
+     * @return A list of {@link User} objects.
+     */
     public List<User> getUsersInfo() {
         return userRepository.findAll();
     }
 
+    /**
+     * Creates a new user account, hashes the password, stores user details, 
+     * and sends a verification email.
+     * 
+     * @param newUser The {@link NewUserDTO} containing user registration details.
+     * @throws RuntimeException if the username already exists.
+     */
     @Transactional
     public void createUser(NewUserDTO newUser) {
-        if(userRepository.existsByUsername(newUser.username())) throw new RuntimeException("Username already exists");
-        
+        // Check if the username already exists
+        if (userRepository.existsByUsername(newUser.username())) 
+            throw new RuntimeException("Username already exists");
+
+        // Convert date of birth from integers to SQL Date format
         LocalDate localDate = LocalDate.of(newUser.yob(), newUser.mob(), newUser.dob());
         Date dob = Date.valueOf(localDate);
+
+        // Create a new user entity with hashed password
         User user = new User(
             newUser.username(),
             newUser.email(),
@@ -71,58 +91,112 @@ public class UserService {
             dob,
             newUser.gradeLv(),
             newUser.roleId()
-            );
+        );
+
+        // Save user to the database
         userRepository.save(user);
+
+        // Send email verification
         verificationService.sendVerificationEmail(user.getEmail());
     }
 
+    /**
+     * Authenticates a user, verifies password, and handles token management.
+     * If a valid token exists, it is reused; otherwise, OTP verification is required.
+     * 
+     * @param loginUser The {@link LoginUserDTO} containing login credentials.
+     * @return A {@link ResponseTemplate} containing the authentication token or OTP message.
+     * @throws UserNotFoundException if the username does not exist.
+     * @throws UserNotEnableException if the user is disabled.
+     * @throws PasswordMissMatchException if the password is incorrect.
+     */
     public ResponseTemplate<?> login(LoginUserDTO loginUser) {
+        // Retrieve user by username
         Optional<User> user = userRepository.findByUsername(loginUser.username());
-        if(!user.isPresent()) throw new UserNotFoundException("Username does not exist");
-        if(!user.get().getIsEnable()) throw new UserNotEnableException("User is disabled");
-        if(!SecurityUtils.matchesPassword(loginUser.password(), user.get().getPassword())) throw new PasswordMissMatchException("Invalid password");
-        // If token already exists, then return that token (enable multi device login, using the same token)
-        if(tokenRepository.existsByUserId(user.get().getId()) 
-            && jwtUtils.isValid(tokenRepository.findByUserId(user.get().getId()).get().getToken())){
-                return new ResponseTemplate<LoginUserResponseDTO>(
-                    new LoginUserResponseDTO(tokenRepository.findByUserId(user.get().getId()).get().getToken()), 
-                    "Login successful");
+        if (!user.isPresent()) 
+            throw new UserNotFoundException("Username does not exist");
+
+        // Check if the user is enabled
+        if (!user.get().getIsEnable()) 
+            throw new UserNotEnableException("User is disabled");
+
+        // Validate password
+        if (!SecurityUtils.matchesPassword(loginUser.password(), user.get().getPassword())) 
+            throw new PasswordMissMatchException("Invalid password");
+
+        // Check if a valid token already exists (to allow multi-device login)
+        if (tokenRepository.existsByUserId(user.get().getId()) 
+            && jwtUtils.isValid(tokenRepository.findByUserId(user.get().getId()).get().getToken())) {
+            return new ResponseTemplate<LoginUserResponseDTO>(
+                new LoginUserResponseDTO(tokenRepository.findByUserId(user.get().getId()).get().getToken()), 
+                "Login successful"
+            );
         }
-        // If token does not exist, then generate a new token and save it in the database
-        // Before generating a new token, send otp to the user, check if that user has verified the otp 
-        // If user has verified the otp, then generate a new token and save it in the database
 
-        // Generate and send OTP (Only if user is logging in for the first time or token is expired)
-        String otp = verificationService.generateOtp(user.get());  // Generate OTP and send to user's email
+        // Generate and send OTP if token does not exist or is expired
+        String otp = verificationService.generateOtp(user.get()); // Generate OTP
 
-        // Save OTP to Redis or database with an expiration time of 3 minutes
+        // Save OTP in Redis with a 3-minute expiration
         redisService.saveOtp(otp, user.get().getUsername());
+
         return new ResponseTemplate<String>(null, "OTP sent to your email. Please verify to complete the login process.");
     }
 
+    /**
+     * Logs out a user by deleting their authentication token.
+     * 
+     * @param token The authentication token to be invalidated.
+     * @return A string message confirming successful logout.
+     * @throws TokenNotFoundException if the token does not exist.
+     */
     @Transactional
-    public String logout(String token){
-        if (tokenRepository.existsByToken(token)){
+    public String logout(String token) {
+        // Check if the token exists
+        if (tokenRepository.existsByToken(token)) {
             tokenRepository.deleteByToken(token);
             return "Logged out successfully";
-        } else throw new TokenNotFoundException("No token found");
+        } else {
+            throw new TokenNotFoundException("No token found");
+        }
     }
 
+    /**
+     * Retrieves user information, including gender and role details.
+     * Uses caching to optimize repeated requests.
+     * 
+     * @param userId The unique identifier of the user.
+     * @return A {@link ResponseTemplate} containing the {@link UserInfoResponseDTO}.
+     * @throws UserNotFoundException if the user does not exist.
+     * @throws GenderNotFoundException if the gender is not found.
+     * @throws RoleNotFoundException if the role is not found.
+     */
     @Cacheable("user")
     public ResponseTemplate<UserInfoResponseDTO> getUserInfo(String userId) {
+        // Retrieve user from the database
         Optional<User> user = userRepository.findById(UUID.fromString(userId));
-        if (!user.isPresent()) throw new UserNotFoundException("User not found with id" + userId);
+        if (!user.isPresent()) 
+            throw new UserNotFoundException("User not found with id: " + userId);
+
+        // Retrieve gender information
         Optional<Gender> gender = genderRepository.findById(user.get().getGenderId());
-        if(!gender.isPresent()) throw new GenderNotFoundException("Gender not found with id" + user.get().getGenderId());
+        if (!gender.isPresent()) 
+            throw new GenderNotFoundException("Gender not found with id: " + user.get().getGenderId());
+
+        // Retrieve role information
         Optional<Role> role = roleRepository.findById(user.get().getRoleId());
-        if(!role.isPresent()) throw new RoleNotFoundException("Role not found with id" + user.get().getRoleId());
+        if (!role.isPresent()) 
+            throw new RoleNotFoundException("Role not found with id: " + user.get().getRoleId());
+
+        // Construct the user information response
         UserInfoResponseDTO userInfo = new UserInfoResponseDTO(
-            user.get().getUsername(), 
-            gender.get().getGenderType(), 
-            new Date(user.get().getDob().getTime()), 
-            user.get().getToken(), 
+            user.get().getUsername(),
+            gender.get().getGenderType(),
+            new Date(user.get().getDob().getTime()),
+            user.get().getToken(),
             user.get().getGradeLv(),
-            role.get().getRoleName());
+            role.get().getRoleName()
+        );
+
         return new ResponseTemplate<UserInfoResponseDTO>(userInfo, "Success");
     }
 }

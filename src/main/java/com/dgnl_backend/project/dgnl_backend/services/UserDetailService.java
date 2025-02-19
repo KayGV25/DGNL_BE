@@ -15,26 +15,47 @@ import com.dgnl_backend.project.dgnl_backend.repositories.UserRepository;
 import com.dgnl_backend.project.dgnl_backend.schemas.Role;
 import com.dgnl_backend.project.dgnl_backend.schemas.User;
 
+/**
+ * Service class for loading user details from the database.
+ * Implements {@link UserDetailsService} to provide authentication details.
+ */
 @Component
 public class UserDetailService implements UserDetailsService {
+    
     @Autowired
-    private UserRepository userRepository;
+    private UserRepository userRepository; // Repository for user-related database operations
 
     @Autowired
-    private RoleRepository roleRepository;
+    private RoleRepository roleRepository; // Repository for role-related database operations
 
+    /**
+     * Loads user details by user ID.
+     *
+     * @param id the UUID of the user
+     * @return UserDetails containing user authentication details
+     * @throws UsernameNotFoundException if the user is not found
+     */
     @Override
     public UserDetails loadUserByUsername(String id) throws UsernameNotFoundException {
+        
+        // Convert the string ID to a UUID and attempt to find the user in the database
         Optional<User> user = userRepository.findById(UUID.fromString(id));
+        
         if (user.isPresent()) {
+            // Retrieve the role associated with the user
             Optional<Role> role = roleRepository.findById(user.get().getRoleId());
-            if (!role.isPresent()) throw new RoleNotFoundException("Role nnot found with id: " + user.get().getRoleId());
+            
+            // If the role is not found, throw an exception
+            if (!role.isPresent()) throw new RoleNotFoundException("Role not found with id: " + user.get().getRoleId());
+            
+            // Build and return the UserDetails object using Spring Security's User class
             return org.springframework.security.core.userdetails.User.builder()
-                    .username(user.get().getUsername())
-                    .password(user.get().getPassword())
-                    .roles(role.get().getRoleName().toUpperCase())
+                    .username(user.get().getUsername()) // Set the username
+                    .password(user.get().getPassword()) // Set the password
+                    .roles(role.get().getRoleName().toUpperCase()) // Assign roles to the user
                     .build();
         } else {
+            // If user is not found, throw an exception
             throw new UsernameNotFoundException("User not found with id: " + id);
         }
     }

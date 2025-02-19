@@ -21,6 +21,9 @@ import com.dgnl_backend.project.dgnl_backend.schemas.Token;
 import com.dgnl_backend.project.dgnl_backend.schemas.User;
 import com.dgnl_backend.project.dgnl_backend.utils.JWTUtils;
 
+/**
+ * Service for handling user verification processes, including email verification and OTP-based login.
+ */
 @Service
 public class VerificationService {
 
@@ -29,80 +32,166 @@ public class VerificationService {
 
     @Autowired
     private RedisService redisService;
+
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
     @Autowired
     private UserRepository userRepository;
+
     @Autowired
     private TokenRepository tokenRepository;
 
     @Value("${backend.url}")
     private String backendUrl;
 
+    /**
+     * Sends an email verification link to the user.
+     *
+     * @param email The user's email address.
+     * @return A success message indicating the email verification link was sent.
+     * @apiNote If the email verification token is already stored in Redis, it reuses the same token.
+     */
     public String sendVerificationEmail(String email) {
+        // Retrieve existing token from Redis
         String token = (String) redisTemplate.opsForValue().get(email);
+        
+        // If no token exists, generate a new one
         if (token == null) token = generateEmailVerificationToken(email);
+
+        // Construct verification URL
         String verificationUrl = backendUrl + "/api/verification/account?token=" + token;
+
+        // Prepare email content
         String subject = "Email Verification";
         String content = "Click the link to verify your email: " + verificationUrl;
+
+        // Log verification URL (Replace with actual mail sender)
         System.out.println(verificationUrl);
-        // Use JavaMailSender to send email
 
         return "Email verification link sent successfully. Please check your inbox for the link.";
     }
 
+    /**
+     * Generates a unique email verification token and stores it in Redis.
+     *
+     * @param email The user's email address.
+     * @return The generated verification token.
+     * @apiNote Token is stored in Redis for future verification.
+     */
     public String generateEmailVerificationToken(String email) {
+        // Generate unique token using UUID
         String token = UUID.randomUUID().toString();
+        
+        // Store token in Redis mapped to the email
         redisService.saveEmailVerificationToken(token, email);
+
         return token;
     }
 
+    /**
+     * Generates a 6-digit OTP for user authentication.
+     *
+     * @param user The user requesting OTP.
+     * @return The generated OTP.
+     * @apiNote The OTP is stored in Redis and sent via email.
+     */
     @Transactional
     public String generateOtp(User user) {
-        String otp = String.valueOf(100000 + new Random().nextInt(900000)); // 6-digit OTP
+        // Generate a random 6-digit OTP
+        String otp = String.valueOf(100000 + new Random().nextInt(900000)); 
         System.out.println("OTP: " + otp);
+
+        // Store OTP in Redis linked to the user's username
         redisService.saveOtp(otp, user.getUsername());
+
+        // Send OTP to the user's email
         sendOtpEmail(user.getEmail(), otp);
+
         return otp;
     }
 
+    /**
+     * Sends an email containing the OTP for authentication.
+     *
+     * @param email The recipient's email address.
+     * @param otp   The OTP code.
+     * @apiNote Intended to send OTP via JavaMailSender (not implemented in this snippet).
+     */
     public void sendOtpEmail(String email, String otp) {
+        // Prepare email content
         String subject = "6 Digit OTP for Verification";
         String content = "Your OTP: " + otp;
+
+        // Placeholder for sending email
         // Use JavaMailSender to send email
     }
 
+    /**
+     * Verifies the account using the token from the verification email.
+     *
+     * @param token The verification token.
+     * @return A response template indicating success or failure.
+     * @throws InvalidOTPException If the token is invalid or expired.
+     * @apiNote This method enables the user account upon successful verification.
+     */
     @Transactional
     public ResponseTemplate<?> verifyAccount(@RequestParam String token) {
+        // Retrieve the email associated with the token from Redis
         String email = (String) redisTemplate.opsForValue().get(token);
 
+        // If token is not found, throw an exception
         if (email == null) throw new InvalidOTPException("Invalid or Expired token");
         
+        // Fetch user from database using email
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        // Enable user account
         user.setIsEnable(true);
         userRepository.save(user);
 
-        redisTemplate.delete(token); // Invalidate token after verification
+        // Remove token and email from Redis after successful verification
+        redisTemplate.delete(token);
         redisTemplate.delete(email);
+
         return new ResponseTemplate<String>(null, "Account verified successfully");
     }
 
+    /**
+     * Verifies the OTP entered by the user and issues a JWT token upon success.
+     *
+     * @param username The user's username.
+     * @param otp      The OTP entered by the user.
+     * @return A response containing the JWT token and success message.
+     * @throws ExpiredOTPException If the OTP has expired.
+     * @throws InvalidOTPException If the OTP is incorrect.
+     * @apiNote The OTP is deleted from Redis after verification.
+     */
     @Transactional
     public ResponseTemplate<?> verifyOtp(String username, String otp) {
+        // Retrieve the stored OTP from Redis
         String storedOtp = (String) redisTemplate.opsForValue().get("OTP_" + username);
     
+        // Check if OTP is expired
         if (storedOtp == null) throw new ExpiredOTPException("OTP is Expired");
-        if (!storedOtp.equals(otp)) throw new InvalidOTPException("Ivalid OTP code");
+
+        // Validate the entered OTP
+        if (!storedOtp.equals(otp)) throw new InvalidOTPException("Invalid OTP code");
         
+        // Fetch user from database
         User user = userRepository.findByUsername(username).get();
         UUID userId = user.getId();
 
-        redisTemplate.delete("OTP_" + username); // Invalidate OTP after verification
-        String token = jwtUtils.generate(userId.toString(), 1000*(60*60*24*365));
+        // Remove OTP from Redis after successful verification
+        redisTemplate.delete("OTP_" + username);
+
+        // Generate JWT token (valid for 1 year)
+        String token = jwtUtils.generate(userId.toString(), 1000 * (60 * 60 * 24 * 365));
+
+        // Save the JWT token in the database
         tokenRepository.save(new Token(userId, token));
+
         return new ResponseTemplate<LoginUserResponseDTO>(new LoginUserResponseDTO(token), "Login successful");
     }
-
 }
