@@ -72,7 +72,7 @@ public class UserService {
             newUser.roleId()
             );
         userRepository.save(user);
-        verificationService.sendVerificationEmail(user);
+        verificationService.sendVerificationEmail(user.getEmail());
     }
 
     public ResponseTemplate<?> login(LoginUserDTO loginUser) {

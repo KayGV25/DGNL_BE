@@ -13,7 +13,8 @@ public class RedisService {
     private RedisTemplate<String, Object> redisTemplate;
 
     public void saveEmailVerificationToken(String token, String email) {
-        redisTemplate.opsForValue().set(token, email, Duration.ofHours(24));
+        redisTemplate.opsForValue().set(token, email, Duration.ofHours(3));
+        redisTemplate.opsForValue().set(email, token, Duration.ofHours(3));
     }
 
     public void saveOtp(String otp, String username) {

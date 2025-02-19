@@ -4,8 +4,8 @@ import java.util.Random;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,14 +37,25 @@ public class VerificationService {
     @Autowired
     private TokenRepository tokenRepository;
 
-    public void sendVerificationEmail(User user) {
-        String token = UUID.randomUUID().toString();
-        redisService.saveEmailVerificationToken(token, user.getEmail());
-        String verificationUrl = "http://your-domain.com/api/verify?token=" + token;
+    @Value("${backend.url}")
+    private String backendUrl;
+
+    public String sendVerificationEmail(String email) {
+        String token = (String) redisTemplate.opsForValue().get(email);
+        if (token == null) token = generateEmailVerificationToken(email);
+        String verificationUrl = backendUrl + "/api/verification/account?token=" + token;
         String subject = "Email Verification";
         String content = "Click the link to verify your email: " + verificationUrl;
         System.out.println(verificationUrl);
         // Use JavaMailSender to send email
+
+        return "Email verification link sent successfully. Please check your inbox for the link.";
+    }
+
+    public String generateEmailVerificationToken(String email) {
+        String token = UUID.randomUUID().toString();
+        redisService.saveEmailVerificationToken(token, email);
+        return token;
     }
 
     @Transactional
@@ -63,7 +74,7 @@ public class VerificationService {
     }
 
     @Transactional
-    public ResponseEntity<?> verifyAccount(@RequestParam String token) {
+    public ResponseTemplate<?> verifyAccount(@RequestParam String token) {
         String email = (String) redisTemplate.opsForValue().get(token);
 
         if (email == null) throw new InvalidOTPException("Invalid or Expired token");
@@ -74,8 +85,8 @@ public class VerificationService {
         userRepository.save(user);
 
         redisTemplate.delete(token); // Invalidate token after verification
-
-        return ResponseEntity.ok("Account verified successfully");
+        redisTemplate.delete(email);
+        return new ResponseTemplate<String>(null, "Account verified successfully");
     }
 
     @Transactional

@@ -32,5 +32,29 @@ public class VerificationController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ResponseTemplate<>(null, e.getMessage()));
         }
     }
+
+    @GetMapping("/account")
+    public ResponseEntity<ResponseTemplate<?>> verifyAccount(
+        @RequestParam String token
+        ) {
+            try {
+                return ResponseEntity.ok(verificationService.verifyAccount(token));
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ResponseTemplate<String>(null, e.getMessage()));
+            }
+        }
     
+    @GetMapping("/email/account")
+    public ResponseEntity<ResponseTemplate<?>> resendVerificationEmail(
+        @RequestParam String email
+    ){
+        try {
+            return ResponseEntity.ok(new ResponseTemplate<String>(null, verificationService.sendVerificationEmail(email)));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ResponseTemplate<String>(null, e.getMessage()));
+        }
+
+    }
+
+
 }
