@@ -112,7 +112,7 @@ public class UserService {
      */
     public ResponseTemplate<?> login(LoginUserDTO loginUser) {
         // Retrieve user by username
-        Optional<User> user = userRepository.findByUsername(loginUser.username());
+        Optional<User> user = userRepository.findByUsernameOrEmail(loginUser.username(), loginUser.username());
         if (!user.isPresent()) 
             throw new UserNotFoundException("Username does not exist");
 
