@@ -17,6 +17,7 @@ import com.dgnl_backend.project.dgnl_backend.exceptions.token.ExpiredOTPExceptio
 import com.dgnl_backend.project.dgnl_backend.exceptions.token.InvalidOTPException;
 import com.dgnl_backend.project.dgnl_backend.repositories.TokenRepository;
 import com.dgnl_backend.project.dgnl_backend.repositories.UserRepository;
+import com.dgnl_backend.project.dgnl_backend.schemas.Email;
 import com.dgnl_backend.project.dgnl_backend.schemas.Token;
 import com.dgnl_backend.project.dgnl_backend.schemas.User;
 import com.dgnl_backend.project.dgnl_backend.utils.JWTUtils;
@@ -32,6 +33,8 @@ public class VerificationService {
 
     @Autowired
     private RedisService redisService;
+    @Autowired
+    private EmailService emailService;
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
@@ -68,7 +71,8 @@ public class VerificationService {
 
         // Log verification URL (Replace with actual mail sender)
         System.out.println(verificationUrl);
-
+        Email emailDetail = new Email(email, subject, content);
+        emailService.sendEmail(emailDetail);
         return "Email verification link sent successfully. Please check your inbox for the link.";
     }
 
@@ -125,6 +129,8 @@ public class VerificationService {
 
         // Placeholder for sending email
         // Use JavaMailSender to send email
+        Email emailDetail = new Email(email, subject, content);
+        emailService.sendEmail(emailDetail);
     }
 
     /**
