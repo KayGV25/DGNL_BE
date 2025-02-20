@@ -18,6 +18,7 @@ import com.dgnl_backend.project.dgnl_backend.dtos.user.response.LoginUserRespons
 import com.dgnl_backend.project.dgnl_backend.dtos.user.response.UserInfoResponseDTO;
 import com.dgnl_backend.project.dgnl_backend.exceptions.gender.GenderNotFoundException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.role.RoleNotFoundException;
+import com.dgnl_backend.project.dgnl_backend.exceptions.token.InvalidJWTException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.token.TokenNotFoundException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.user.PasswordMissMatchException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.user.UserNotEnableException;
@@ -77,7 +78,8 @@ public class UserService {
         // Check if the username already exists
         if (userRepository.existsByUsername(newUser.username())) 
             throw new RuntimeException("Username already exists");
-
+        if (userRepository.existsByEmail(newUser.email())) 
+            throw new RuntimeException("Email already exists");
         // Convert date of birth from integers to SQL Date format
         LocalDate localDate = LocalDate.of(newUser.yob(), newUser.mob(), newUser.dob());
         Date dob = Date.valueOf(localDate);
@@ -114,7 +116,7 @@ public class UserService {
         // Retrieve user by username
         Optional<User> user = userRepository.findByUsernameOrEmail(loginUser.username(), loginUser.username());
         if (!user.isPresent()) 
-            throw new UserNotFoundException("Username does not exist");
+            throw new UserNotFoundException("User does not exist");
 
         // Check if the user is enabled
         if (!user.get().getIsEnable()) 
@@ -124,9 +126,13 @@ public class UserService {
         if (!SecurityUtils.matchesPassword(loginUser.password(), user.get().getPassword())) 
             throw new PasswordMissMatchException("Invalid password");
 
+        // check if jwt is valid, if not then delete the token and throw an error
+        if (!jwtUtils.isValid(tokenRepository.findByUserId(user.get().getId()).get().getToken())) {
+            tokenRepository.deleteById(tokenRepository.findByUserId(user.get().getId()).get().getId());
+            throw new InvalidJWTException("Invalid JWT Token");
+        }
         // Check if a valid token already exists (to allow multi-device login)
-        if (tokenRepository.existsByUserId(user.get().getId()) 
-            && jwtUtils.isValid(tokenRepository.findByUserId(user.get().getId()).get().getToken())) {
+        if (tokenRepository.existsByUserId(user.get().getId())) {
             return new ResponseTemplate<LoginUserResponseDTO>(
                 new LoginUserResponseDTO(tokenRepository.findByUserId(user.get().getId()).get().getToken()), 
                 "Login successful"

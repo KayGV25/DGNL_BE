@@ -16,6 +16,7 @@ import com.dgnl_backend.project.dgnl_backend.services.UserDetailService;
 import com.dgnl_backend.project.dgnl_backend.utils.JWTUtils;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -52,8 +53,10 @@ public class AuthFilter extends OncePerRequestFilter{
                         
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
-            catch (Exception e){
+            } catch (ExpiredJwtException e) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
+                return;
+            } catch (Exception e){
                 System.out.println(e.getMessage());
                 return;
             }

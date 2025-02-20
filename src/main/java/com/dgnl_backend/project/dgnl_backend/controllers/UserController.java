@@ -4,13 +4,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.dgnl_backend.project.dgnl_backend.dtos.user.request.LoginUserDTO;
 import com.dgnl_backend.project.dgnl_backend.dtos.user.request.NewUserDTO;
+import com.dgnl_backend.project.dgnl_backend.exceptions.token.InvalidJWTException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.user.PasswordMissMatchException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.user.UserNotEnableException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.user.UserNotFoundException;
-import com.dgnl_backend.project.dgnl_backend.schemas.User;
 import com.dgnl_backend.project.dgnl_backend.services.UserService;
-
-import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -32,11 +30,6 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    @GetMapping("")
-    public ResponseEntity<List<User>> getUsersInfo() {
-        return ResponseEntity.ok(userService.getUsersInfo());
-    }
-
     @GetMapping("/{userId}")
     public ResponseEntity<?> getUserInfo(@PathVariable String userId) {
         try {
@@ -53,7 +46,7 @@ public class UserController {
             userService.createUser(newUser);
         } catch (RuntimeException e) {
             System.out.println(e.getMessage());
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Username already exists. Please choose a different username.");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Username or Email already exists. Please choose a different username or email.");
         }
         return ResponseEntity.ok("User registered successfully. Please check your email to activate");
     }
@@ -63,11 +56,13 @@ public class UserController {
         try {
             return ResponseEntity.ok(userService.login(user));
         } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Invalid username");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
         } catch (PasswordMissMatchException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Wrong password.");
         } catch (UserNotEnableException e){
-                return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        } catch (InvalidJWTException e){
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while logging in.");
         }
