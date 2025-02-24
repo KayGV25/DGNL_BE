@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 
@@ -21,11 +22,15 @@ import com.dgnl_backend.project.dgnl_backend.dtos.user.response.LoginUserRespons
 import com.dgnl_backend.project.dgnl_backend.exceptions.token.ExpiredOTPException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.token.InvalidOTPException;
 import com.dgnl_backend.project.dgnl_backend.repositories.TokenRepository;
+import com.dgnl_backend.project.dgnl_backend.repositories.UserDeviceRepository;
 import com.dgnl_backend.project.dgnl_backend.repositories.UserRepository;
 import com.dgnl_backend.project.dgnl_backend.schemas.Email;
 import com.dgnl_backend.project.dgnl_backend.schemas.Token;
 import com.dgnl_backend.project.dgnl_backend.schemas.User;
+import com.dgnl_backend.project.dgnl_backend.schemas.UserDevice;
 import com.dgnl_backend.project.dgnl_backend.utils.JWTUtils;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Service for handling user verification processes, including email verification and OTP-based login.
@@ -48,6 +53,8 @@ public class VerificationService {
     private UserRepository userRepository;
     @Autowired
     private TokenRepository tokenRepository;
+    @Autowired
+    private UserDeviceRepository userDeviceRepository;
 
     @Value("${backend.url}")
     private String backendUrl;
@@ -189,7 +196,7 @@ public class VerificationService {
      * @apiNote The OTP is deleted from Redis after verification.
      */
     @Transactional
-    public ResponseTemplate<?> verifyOtp(String username, String otp) {
+    public ResponseTemplate<?> verifyOtp(String username, String otp, String deviceId, HttpServletRequest request) {
         // Retrieve the stored OTP from Redis
         String storedOtp = (String) redisTemplate.opsForValue().get("OTP_" + username);
     
@@ -203,14 +210,30 @@ public class VerificationService {
         User user = userRepository.findByUsername(username).get();
         UUID userId = user.getId();
 
+        // Find if the device already exists for the user
+        Optional<UserDevice> existingDeviceOpt = userDeviceRepository.findByUserAndDeviceId(user, deviceId);
+
+        UserDevice userDevice;
+        if (existingDeviceOpt.isPresent()) {
+            // Update existing device
+            userDevice = existingDeviceOpt.get();
+            if (!userDevice.getTrusted()) {
+                userDevice.setTrusted(true);
+                userDeviceRepository.save(userDevice);
+            }
+        }
+        
         // Remove OTP from Redis after successful verification
         redisTemplate.delete("OTP_" + username);
-
-        // Generate JWT token (valid for 1 year)
-        String token = jwtUtils.generate(userId.toString(), 1000 * (60 * 60 * 24 * 365));
-
-        // Save the JWT token in the database
-        tokenRepository.save(new Token(userId, token));
+        String token;
+        if (!tokenRepository.existsByUserId(userId)){
+            // Generate JWT token (valid for 1 year)
+            token = jwtUtils.generate(userId.toString(), 1000 * (60 * 60 * 24 * 365));
+            // Save the JWT token in the database
+            tokenRepository.save(new Token(user, token));
+        } else {
+            token = tokenRepository.findByUserId(userId).get().getToken();
+        }
 
         return new ResponseTemplate<LoginUserResponseDTO>(new LoginUserResponseDTO(token), "Login successful");
     }

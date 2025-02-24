@@ -9,8 +9,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
-import com.dgnl_backend.project.dgnl_backend.exceptions.role.RoleNotFoundException;
-import com.dgnl_backend.project.dgnl_backend.repositories.RoleRepository;
 import com.dgnl_backend.project.dgnl_backend.repositories.UserRepository;
 import com.dgnl_backend.project.dgnl_backend.schemas.Role;
 import com.dgnl_backend.project.dgnl_backend.schemas.User;
@@ -24,9 +22,6 @@ public class UserDetailService implements UserDetailsService {
     
     @Autowired
     private UserRepository userRepository; // Repository for user-related database operations
-
-    @Autowired
-    private RoleRepository roleRepository; // Repository for role-related database operations
 
     /**
      * Loads user details by user ID.
@@ -43,16 +38,16 @@ public class UserDetailService implements UserDetailsService {
         
         if (user.isPresent()) {
             // Retrieve the role associated with the user
-            Optional<Role> role = roleRepository.findById(user.get().getRoleId());
+            Role role = user.get().getRole();
             
             // If the role is not found, throw an exception
-            if (!role.isPresent()) throw new RoleNotFoundException("Role not found with id: " + user.get().getRoleId());
+            // if (!role.isPresent()) throw new RoleNotFoundException("Role not found with id: " + user.get().getRoleId());
             
             // Build and return the UserDetails object using Spring Security's User class
             return org.springframework.security.core.userdetails.User.builder()
                     .username(user.get().getUsername()) // Set the username
                     .password(user.get().getPassword()) // Set the password
-                    .roles(role.get().getRoleName().toUpperCase()) // Assign roles to the user
+                    .roles(role.getRoleName().toUpperCase()) // Assign roles to the user
                     .build();
         } else {
             // If user is not found, throw an exception

@@ -21,6 +21,7 @@ import com.dgnl_backend.project.dgnl_backend.dtos.user.response.UserInfoResponse
 import com.dgnl_backend.project.dgnl_backend.exceptions.gender.GenderNotFoundException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.role.RoleNotFoundException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.token.InvalidJWTException;
+import com.dgnl_backend.project.dgnl_backend.exceptions.token.SendingOTPException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.token.TokenNotFoundException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.user.EmailInvalidException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.user.PasswordMissMatchException;
@@ -29,14 +30,18 @@ import com.dgnl_backend.project.dgnl_backend.exceptions.user.UserNotFoundExcepti
 import com.dgnl_backend.project.dgnl_backend.repositories.GenderRepository;
 import com.dgnl_backend.project.dgnl_backend.repositories.RoleRepository;
 import com.dgnl_backend.project.dgnl_backend.repositories.TokenRepository;
+import com.dgnl_backend.project.dgnl_backend.repositories.UserDeviceRepository;
 import com.dgnl_backend.project.dgnl_backend.repositories.UserRepository;
 import com.dgnl_backend.project.dgnl_backend.schemas.Gender;
 import com.dgnl_backend.project.dgnl_backend.schemas.Role;
 import com.dgnl_backend.project.dgnl_backend.schemas.Token;
 import com.dgnl_backend.project.dgnl_backend.schemas.User;
+import com.dgnl_backend.project.dgnl_backend.schemas.UserDevice;
 import com.dgnl_backend.project.dgnl_backend.utils.JWTUtils;
 import com.dgnl_backend.project.dgnl_backend.utils.PatternMatching;
 import com.dgnl_backend.project.dgnl_backend.utils.SecurityUtils;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Service class responsible for user-related operations such as registration, 
@@ -53,6 +58,8 @@ public class UserService {
     private GenderRepository genderRepository; // Repository for gender data
     @Autowired
     private RoleRepository roleRepository; // Repository for roles
+    @Autowired
+    private UserDeviceRepository userDeviceRepository;
 
     @Autowired
     private JWTUtils jwtUtils; // Utility for JWT token management
@@ -85,6 +92,7 @@ public class UserService {
      */
     @Transactional
     public void createUser(NewUserDTO newUser) throws IOException {
+        // Validate email format using RFC 5322 standards
         if (!PatternMatching.patternMatches(newUser.email(), EMAIL_REGEX))
             throw new EmailInvalidException("Invalid email format");
         // Check if the username already exists
@@ -96,15 +104,27 @@ public class UserService {
         LocalDate localDate = LocalDate.of(newUser.yob(), newUser.mob(), newUser.dob());
         Date dob = Date.valueOf(localDate);
 
+        Optional<Gender> gender = genderRepository.findById(newUser.genderId());
+        if (!gender.isPresent())
+            throw new GenderNotFoundException("Gender not found");
+
+        Optional<Role> roleOpt = roleRepository.findById(newUser.roleId());
+        Role role;
+        if (!roleOpt.isPresent()){
+            role = roleRepository.getReferenceById(3);
+        }
+        else {
+            role = roleOpt.get();
+        }
         // Create a new user entity with hashed password
         User user = new User(
             newUser.username(),
             newUser.email(),
             SecurityUtils.hashPassword(newUser.password()),
-            newUser.genderId(),
+            gender.get(),
             dob,
             newUser.gradeLv(),
-            newUser.roleId()
+            role
         );
 
         // Save user to the database
@@ -124,7 +144,11 @@ public class UserService {
      * @throws UserNotEnableException if the user is disabled.
      * @throws PasswordMissMatchException if the password is incorrect.
      */
-    public ResponseTemplate<?> login(LoginUserDTO loginUser) {
+    public ResponseTemplate<?> login(LoginUserDTO loginUser, String deviceId, HttpServletRequest request) {
+
+        // Get device fingerprint
+        String fingerprint = SecurityUtils.getDeviceFingerprint(request);
+
         // Retrieve user by username
         Optional<User> user = userRepository.findByUsernameOrEmail(loginUser.username(), loginUser.username());
         if (!user.isPresent()) 
@@ -146,25 +170,79 @@ public class UserService {
             throw new InvalidJWTException("Invalid JWT Token");
         }
         // Check if a valid token already exists (to allow multi-device login)
-        if (tokenRepository.existsByUserId(user.get().getId())) {
-            return new ResponseTemplate<LoginUserResponseDTO>(
+        // OTP will sent when
+        // 1. Have Token and no device -> verifyOtp will enable device and sent token
+        // 2. Have no Token and no device -> verifyOtp will generate token and enable device and sent
+        // 3. Have no Token and have device -> verifyOtp will generate token and sent token
+        // 4. device but not trusted
+        // Sent token back when have token and device
+        Optional<UserDevice> existingDevice = userDeviceRepository.findByUserAndDeviceId(user.get(), deviceId);
+
+        // Have no token and no device
+        if (token.isEmpty() && UserDeviceService.isNoDevice(existingDevice, fingerprint)) {
+            // create device
+           if (existingDevice.isEmpty()){
+                UserDevice newDevice = new UserDevice();
+                newDevice.setUser(user.get());
+                newDevice.setDeviceId(deviceId);
+                newDevice.setFingerprint(fingerprint);
+                newDevice.setTrusted(false); // Not trusted yet
+                userDeviceRepository.save(newDevice);
+           }
+            
+            // sending otp
+            sendingOtp(user.get());
+            throw new SendingOTPException("Sending OTP. Check your email");
+        }
+
+        // Have no token and have device
+        // No need to make a new device just send the otp to make a new token
+        if (token.isEmpty() && !UserDeviceService.isNoDevice(existingDevice, fingerprint)){
+            // sending otp
+            sendingOtp(user.get());
+            throw new SendingOTPException("Sending OTP. Check your email");
+        }
+
+        // Have token and have no device
+        if (token.isPresent() && UserDeviceService.isNoDevice(existingDevice, fingerprint)){
+            if (existingDevice.isEmpty()){
+                UserDevice newDevice = new UserDevice();
+                newDevice.setUser(user.get());
+                newDevice.setDeviceId(deviceId);
+                newDevice.setFingerprint(fingerprint);
+                newDevice.setTrusted(false); // Not trusted yet
+                userDeviceRepository.save(newDevice);
+            }
+            
+            // sending otp
+            sendingOtp(user.get());
+            throw new SendingOTPException("Sending OTP. Check your email");
+        }
+        
+        // Device not trusted
+        if (!existingDevice.get().getTrusted()){
+            // sending otp
+            sendingOtp(user.get());
+            throw new SendingOTPException("Sending OTP. Check your email");
+        }
+
+        // Have token and device
+        return new ResponseTemplate<LoginUserResponseDTO>(
                 new LoginUserResponseDTO(token.get().getToken()), 
                 "Login successful"
             );
-        }
-
+    }
+    private void sendingOtp(User user){
         // Check if OTP in redis
-        String otp = (String) redisTemplate.opsForValue().get("OTP_" + user.get().getUsername()); // Get OTP from Redis
+        String otp = (String) redisTemplate.opsForValue().get("OTP_" + user.getUsername()); // Get OTP from Redis
         // Generate and send OTP if token does not exist or is expired
         if (otp == null){
-            otp = verificationService.generateOtp(user.get()); // Generate OTP
-            redisService.saveOtp(otp, user.get().getUsername());
+            otp = verificationService.generateOtp(user); // Generate OTP
+            redisService.saveOtp(otp, user.getUsername());
         }
         else {
-            verificationService.sendOtpEmail(user.get().getEmail(), otp);
+            verificationService.sendOtpEmail(user.getEmail(), otp);
         }
-
-        return new ResponseTemplate<String>(null, "OTP sent to your email. Please verify to complete the login process.");
     }
 
     /**
@@ -174,6 +252,7 @@ public class UserService {
      * @return A string message confirming successful logout.
      * @throws TokenNotFoundException if the token does not exist.
      */
+    // Logout from all device
     @Transactional
     public String logout(String token) {
         // Check if the token exists
@@ -201,25 +280,14 @@ public class UserService {
         Optional<User> user = userRepository.findById(UUID.fromString(userId));
         if (!user.isPresent()) 
             throw new UserNotFoundException("User not found with id: " + userId);
-
-        // Retrieve gender information
-        Optional<Gender> gender = genderRepository.findById(user.get().getGenderId());
-        if (!gender.isPresent()) 
-            throw new GenderNotFoundException("Gender not found with id: " + user.get().getGenderId());
-
-        // Retrieve role information
-        Optional<Role> role = roleRepository.findById(user.get().getRoleId());
-        if (!role.isPresent()) 
-            throw new RoleNotFoundException("Role not found with id: " + user.get().getRoleId());
-
         // Construct the user information response
         UserInfoResponseDTO userInfo = new UserInfoResponseDTO(
             user.get().getUsername(),
-            gender.get().getGenderType(),
+            user.get().getGender().getGenderType(),
             new Date(user.get().getDob().getTime()),
             user.get().getToken(),
             user.get().getGradeLv(),
-            role.get().getRoleName()
+            user.get().getRole().getRoleName()
         );
 
         return new ResponseTemplate<UserInfoResponseDTO>(userInfo, "Success");

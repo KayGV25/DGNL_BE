@@ -6,9 +6,12 @@ import org.springframework.web.bind.annotation.RestController;
 import com.dgnl_backend.project.dgnl_backend.dtos.ResponseTemplate;
 import com.dgnl_backend.project.dgnl_backend.services.VerificationService;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,10 +27,12 @@ public class VerificationController {
     @GetMapping("/otp/{username}")
     public ResponseEntity<ResponseTemplate<?>> verifyOTP(
         @RequestParam String otp,
-        @PathVariable String username
+        @PathVariable String username,
+        @CookieValue("deviceId") String deviceId,
+        HttpServletRequest request
         ) {
         try {
-            return ResponseEntity.ok(verificationService.verifyOtp(username, otp));
+            return ResponseEntity.ok(verificationService.verifyOtp(username, otp, deviceId, request));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ResponseTemplate<>(null, e.getMessage()));
         }

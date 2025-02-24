@@ -9,6 +9,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -30,9 +32,9 @@ public class User {
     @JsonIgnore
     private String password;
 
-    @Column(name = "gender_id")
-    @JsonIgnore
-    private Integer genderId;
+    @ManyToOne
+    @JoinColumn(name = "gender_id", referencedColumnName = "id")
+    private Gender gender;
 
     @Column(name = "dob")
     private Date dob;
@@ -43,31 +45,23 @@ public class User {
     @Column(name = "grade_lv")
     private Integer gradeLv;
 
-    @Column(name = "role_id")
-    @JsonIgnore
-    private Integer roleId;
+    @ManyToOne
+    @JoinColumn(name = "role_id", referencedColumnName = "id")
+    private Role role;
 
     @Column(name = "is_enable", nullable = false)
     private Boolean isEnable = false;
 
     public User(){}
 
-    public User(String username, String email, String password, Integer genderId, Date dob, Integer gradeLv) {
+    public User(String username, String email, String password, Gender gender, Date dob, Integer gradeLv, Role role) {
         this.username = username;
         this.email = email;
         this.password = password;
+        this.gender = gender;
         this.dob = dob;
         this.gradeLv = gradeLv;
-        this.genderId = genderId;
-    }
-    public User(String username, String email, String password, Integer genderId, Date dob, Integer gradeLv, Integer roleId) {
-        this.username = username;
-        this.email = email;
-        this.password = password;
-        this.dob = dob;
-        this.gradeLv = gradeLv;
-        this.genderId = genderId;
-        this.roleId = roleId;
+        this.role = role;
     }
 
     // Getters and Setters
@@ -103,12 +97,12 @@ public class User {
         this.password = password;
     }
 
-    public Integer getGenderId() {
-        return genderId;
+    public Gender getGender() {
+        return gender;
     }
 
-    public void setGenderId(Integer genderId) {
-        this.genderId = genderId;
+    public void setGender(Gender gender) {
+        this.gender = gender;
     }
 
     public Date getDob() {
@@ -135,12 +129,12 @@ public class User {
         this.gradeLv = gradeLv;
     }
 
-    public Integer getRoleId() {
-        return roleId;
+    public Role getRole() {
+        return role;
     }
 
-    public void setRoleId(Integer roleId) {
-        this.roleId = roleId;
+    public void setRole(Role role) {
+        this.role = role;
     }
 
     public Boolean getIsEnable(){
@@ -150,5 +144,4 @@ public class User {
     public void setIsEnable(Boolean isEnable){
         this.isEnable = isEnable;
     }
-
 }
