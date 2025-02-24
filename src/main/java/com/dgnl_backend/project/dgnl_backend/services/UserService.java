@@ -22,6 +22,7 @@ import com.dgnl_backend.project.dgnl_backend.exceptions.gender.GenderNotFoundExc
 import com.dgnl_backend.project.dgnl_backend.exceptions.role.RoleNotFoundException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.token.InvalidJWTException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.token.TokenNotFoundException;
+import com.dgnl_backend.project.dgnl_backend.exceptions.user.EmailInvalidException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.user.PasswordMissMatchException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.user.UserNotEnableException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.user.UserNotFoundException;
@@ -34,6 +35,7 @@ import com.dgnl_backend.project.dgnl_backend.schemas.Role;
 import com.dgnl_backend.project.dgnl_backend.schemas.Token;
 import com.dgnl_backend.project.dgnl_backend.schemas.User;
 import com.dgnl_backend.project.dgnl_backend.utils.JWTUtils;
+import com.dgnl_backend.project.dgnl_backend.utils.PatternMatching;
 import com.dgnl_backend.project.dgnl_backend.utils.SecurityUtils;
 
 /**
@@ -62,6 +64,9 @@ public class UserService {
     
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
+    private static final String EMAIL_REGEX = "^[a-zA-Z0-9_!#$%&'*+/=?`{|}~^.-]+@[a-zA-Z0-9.-]+$";
+
     /**
      * Retrieves a list of all users from the database.
      * 
@@ -80,6 +85,8 @@ public class UserService {
      */
     @Transactional
     public void createUser(NewUserDTO newUser) throws IOException {
+        if (!PatternMatching.patternMatches(newUser.email(), EMAIL_REGEX))
+            throw new EmailInvalidException("Invalid email format");
         // Check if the username already exists
         if (userRepository.existsByUsername(newUser.username())) 
             throw new RuntimeException("Username already exists");

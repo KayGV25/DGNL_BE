@@ -7,6 +7,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
 
 import com.dgnl_backend.project.dgnl_backend.security.AuthFilter;
 
@@ -23,6 +24,14 @@ public class SecurityConfig {
             .sessionManagement((sm)->{
                     sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
                 })
+            .headers(
+                headers ->
+                headers.xssProtection(
+                        xss -> xss.headerValue(XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK)
+                ).contentSecurityPolicy(
+                        cps -> cps.policyDirectives("script-src 'self'")
+                )
+            )
             .authorizeHttpRequests(rq->
                 rq
                 .requestMatchers("/admin/**").hasRole("ADMIN")
