@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTP Verification</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+        body{
+            background: #e4e4e4;
+            color: black;
+            font-size: 20px;
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+        }
+
+        #root{
+            width: 500px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        #root > * {
+            padding-left: 1ch;
+        }
+
+        .activate-text{
+            font-size: 1.3em;
+            color: black;
+            margin-bottom: 20px;
+        }
+
+        .header{
+            display: flex;
+            align-items: center;
+            background-color: cadetblue;
+            width: 100%%;
+        }
+
+        .header-text{
+            font-weight: bold;
+            font-size: 1.7em;
+            margin: 0.8ch 0;
+        }
+
+        .btn{
+            text-decoration: none;
+        }
+
+        button{
+            background-color: cadetblue;
+            padding: 0.8ch 3ch;
+            color: white;
+            border-radius: 5px;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="root">
+        <header class="header">
+            <p class="header-text">
+                Luyện đề ĐXH
+            </p>
+        </header>
+        <h1>Activate account</h2>
+        <p class="activate-text">Here is your activate account link:
+            <a href='%s'>%s</a>
+        </p>
+        <a href='%s' class="btn"><button>Click Here</button></a>
+    </div>
+</body>
+<script>
+
+</script>
+</html>

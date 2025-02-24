@@ -47,6 +47,9 @@ public class UserController {
         } catch (RuntimeException e) {
             System.out.println(e.getMessage());
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Username or Email already exists. Please choose a different username or email.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("No template found for user registration. Please contact the administrator.");
         }
         return ResponseEntity.ok("User registered successfully. Please check your email to activate");
     }
@@ -64,7 +67,8 @@ public class UserController {
         } catch (InvalidJWTException e){
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while logging in.");
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while logging in. ");
         }
     }
 }

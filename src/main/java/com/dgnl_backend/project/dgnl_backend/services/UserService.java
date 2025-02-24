@@ -1,5 +1,6 @@
 package com.dgnl_backend.project.dgnl_backend.services;
 
+import java.io.IOException;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.List;
@@ -8,6 +9,7 @@ import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +31,7 @@ import com.dgnl_backend.project.dgnl_backend.repositories.TokenRepository;
 import com.dgnl_backend.project.dgnl_backend.repositories.UserRepository;
 import com.dgnl_backend.project.dgnl_backend.schemas.Gender;
 import com.dgnl_backend.project.dgnl_backend.schemas.Role;
+import com.dgnl_backend.project.dgnl_backend.schemas.Token;
 import com.dgnl_backend.project.dgnl_backend.schemas.User;
 import com.dgnl_backend.project.dgnl_backend.utils.JWTUtils;
 import com.dgnl_backend.project.dgnl_backend.utils.SecurityUtils;
@@ -56,7 +59,9 @@ public class UserService {
     private VerificationService verificationService; // Service for email verification
     @Autowired
     private RedisService redisService; // Service for managing OTP storage in Redis
-
+    
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
     /**
      * Retrieves a list of all users from the database.
      * 
@@ -74,7 +79,7 @@ public class UserService {
      * @throws RuntimeException if the username already exists.
      */
     @Transactional
-    public void createUser(NewUserDTO newUser) {
+    public void createUser(NewUserDTO newUser) throws IOException {
         // Check if the username already exists
         if (userRepository.existsByUsername(newUser.username())) 
             throw new RuntimeException("Username already exists");
@@ -127,23 +132,30 @@ public class UserService {
             throw new PasswordMissMatchException("Invalid password");
 
         // check if jwt is valid, if not then delete the token and throw an error
-        if (!jwtUtils.isValid(tokenRepository.findByUserId(user.get().getId()).get().getToken())) {
+        Optional<Token> token = tokenRepository.findByUserId(user.get().getId());
+
+        if (token.isPresent() && !jwtUtils.isValid(token.get().getToken())) {
             tokenRepository.deleteById(tokenRepository.findByUserId(user.get().getId()).get().getId());
             throw new InvalidJWTException("Invalid JWT Token");
         }
         // Check if a valid token already exists (to allow multi-device login)
         if (tokenRepository.existsByUserId(user.get().getId())) {
             return new ResponseTemplate<LoginUserResponseDTO>(
-                new LoginUserResponseDTO(tokenRepository.findByUserId(user.get().getId()).get().getToken()), 
+                new LoginUserResponseDTO(token.get().getToken()), 
                 "Login successful"
             );
         }
 
+        // Check if OTP in redis
+        String otp = (String) redisTemplate.opsForValue().get("OTP_" + user.get().getUsername()); // Get OTP from Redis
         // Generate and send OTP if token does not exist or is expired
-        String otp = verificationService.generateOtp(user.get()); // Generate OTP
-
-        // Save OTP in Redis with a 3-minute expiration
-        redisService.saveOtp(otp, user.get().getUsername());
+        if (otp == null){
+            otp = verificationService.generateOtp(user.get()); // Generate OTP
+            redisService.saveOtp(otp, user.get().getUsername());
+        }
+        else {
+            verificationService.sendOtpEmail(user.get().getEmail(), otp);
+        }
 
         return new ResponseTemplate<String>(null, "OTP sent to your email. Please verify to complete the login process.");
     }

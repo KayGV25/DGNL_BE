@@ -1,10 +1,15 @@
 package com.dgnl_backend.project.dgnl_backend.services;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Random;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -41,7 +46,6 @@ public class VerificationService {
 
     @Autowired
     private UserRepository userRepository;
-
     @Autowired
     private TokenRepository tokenRepository;
 
@@ -55,7 +59,7 @@ public class VerificationService {
      * @return A success message indicating the email verification link was sent.
      * @apiNote If the email verification token is already stored in Redis, it reuses the same token.
      */
-    public String sendVerificationEmail(String email) {
+    public String sendVerificationEmail(String email) throws IOException {
         // Retrieve existing token from Redis
         String token = (String) redisTemplate.opsForValue().get(email);
         
@@ -67,11 +71,12 @@ public class VerificationService {
 
         // Prepare email content
         String subject = "Email Verification";
-        String content = "Click the link to verify your email: " + verificationUrl;
+        String templateContent = loadHtmlTemplate("ActivateAccountMail.html");
+        String formatedContent = String.format(templateContent, verificationUrl, verificationUrl);
 
         // Log verification URL (Replace with actual mail sender)
         System.out.println(verificationUrl);
-        Email emailDetail = new Email(email, subject, content);
+        Email emailDetail = new Email(email, subject, formatedContent);
         emailService.sendEmail(emailDetail);
         return "Email verification link sent successfully. Please check your inbox for the link.";
     }
@@ -104,7 +109,6 @@ public class VerificationService {
     public String generateOtp(User user) {
         // Generate a random 6-digit OTP
         String otp = String.valueOf(100000 + new Random().nextInt(900000)); 
-        System.out.println("OTP: " + otp);
 
         // Store OTP in Redis linked to the user's username
         redisService.saveOtp(otp, user.getUsername());
@@ -123,14 +127,24 @@ public class VerificationService {
      * @apiNote Intended to send OTP via JavaMailSender (not implemented in this snippet).
      */
     public void sendOtpEmail(String email, String otp) {
-        // Prepare email content
-        String subject = "6 Digit OTP for Verification";
-        String content = "Your OTP: " + otp;
+        try {
+                // Prepare email content
+            String subject = "6 Digit OTP for Verification";
+            String templateContent = loadHtmlTemplate("OTPMail.html");
+            String formatedContent = String.format(templateContent, otp);
 
-        // Placeholder for sending email
-        // Use JavaMailSender to send email
-        Email emailDetail = new Email(email, subject, content);
-        emailService.sendEmail(emailDetail);
+            // Placeholder for sending email
+            // Use JavaMailSender to send email
+            Email emailDetail = new Email(email, subject, formatedContent);
+            emailService.sendEmail(emailDetail);
+        }  catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String loadHtmlTemplate(String templateName) throws IOException {
+        Path templatePath = new ClassPathResource("templates/" + templateName).getFile().toPath();
+        return new String(Files.readAllBytes(templatePath), StandardCharsets.UTF_8);
     }
 
     /**
