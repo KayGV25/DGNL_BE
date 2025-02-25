@@ -9,4 +9,6 @@ import com.dgnl_backend.project.dgnl_backend.schemas.UserDevice;
 
 public interface UserDeviceRepository extends JpaRepository<UserDevice, Long> {
     Optional<UserDevice> findByUserAndDeviceId(User user, String deviceId);
+    Optional<UserDevice> findByUserAndFingerprint(User user, String fingerprint);
+    Optional<UserDevice> findByUserAndFingerprintAndDeviceId(User user, String fingerprint, String deviceId);
 }

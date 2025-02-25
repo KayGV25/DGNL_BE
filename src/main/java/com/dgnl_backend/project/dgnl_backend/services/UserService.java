@@ -176,7 +176,7 @@ public class UserService {
         // 3. Have no Token and have device -> verifyOtp will generate token and sent token
         // 4. device but not trusted
         // Sent token back when have token and device
-        Optional<UserDevice> existingDevice = userDeviceRepository.findByUserAndDeviceId(user.get(), deviceId);
+        Optional<UserDevice> existingDevice = userDeviceRepository.findByUserAndFingerprintAndDeviceId(user.get(), fingerprint, deviceId);
 
         // Have no token and no device
         if (token.isEmpty() && UserDeviceService.isNoDevice(existingDevice, fingerprint)) {
@@ -205,7 +205,7 @@ public class UserService {
 
         // Have token and have no device
         if (token.isPresent() && UserDeviceService.isNoDevice(existingDevice, fingerprint)){
-            if (existingDevice.isEmpty()){
+            if (UserDeviceService.isNoDevice(existingDevice, fingerprint)){
                 UserDevice newDevice = new UserDevice();
                 newDevice.setUser(user.get());
                 newDevice.setDeviceId(deviceId);

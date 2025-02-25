@@ -29,6 +29,7 @@ import com.dgnl_backend.project.dgnl_backend.schemas.Token;
 import com.dgnl_backend.project.dgnl_backend.schemas.User;
 import com.dgnl_backend.project.dgnl_backend.schemas.UserDevice;
 import com.dgnl_backend.project.dgnl_backend.utils.JWTUtils;
+import com.dgnl_backend.project.dgnl_backend.utils.SecurityUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -210,8 +211,10 @@ public class VerificationService {
         User user = userRepository.findByUsername(username).get();
         UUID userId = user.getId();
 
+        // Get device fingerprint
+        String fingerprint = SecurityUtils.getDeviceFingerprint(request);
         // Find if the device already exists for the user
-        Optional<UserDevice> existingDeviceOpt = userDeviceRepository.findByUserAndDeviceId(user, deviceId);
+        Optional<UserDevice> existingDeviceOpt = userDeviceRepository.findByUserAndFingerprintAndDeviceId(user, fingerprint, deviceId);
 
         UserDevice userDevice;
         if (existingDeviceOpt.isPresent()) {
