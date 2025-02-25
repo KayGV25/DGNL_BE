@@ -23,13 +23,13 @@ public class SecurityUtils {
     }
 
     public static String getDeviceFingerprint(HttpServletRequest request) {
-        // TODO modifying fingerprint's components
         String userAgent = request.getHeader("User-Agent");
         String acceptLang = request.getHeader("Accept-Language");
-        String screenResolution = request.getHeader("Screen-Resolution"); // This needs to be passed from frontend
-        String timezone = request.getHeader("Time-Zone"); // Also passed from frontend
+        String osName = request.getHeader("OS-Name");
+        String screenRes = request.getHeader("Screen-Resolution");
+        String timeZone = request.getHeader("Time-Zone");
 
-        String rawFingerprint = userAgent + "|" + acceptLang + "|" + screenResolution + "|" + timezone;
+        String rawFingerprint = userAgent + "|" + acceptLang + "|" + osName + "|" + screenRes + "|" + timeZone;
         
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
