@@ -78,7 +78,7 @@ public class VerificationService {
         String verificationUrl = backendUrl + "/api/verification/account?token=" + token;
 
         // Prepare email content
-        String subject = "Email Verification";
+        String subject = "[EMAIL] Email Verification";
         String templateContent = loadHtmlTemplate("ActivateAccountMail.html");
         String formatedContent = String.format(templateContent, verificationUrl, verificationUrl);
 
@@ -137,7 +137,7 @@ public class VerificationService {
     public void sendOtpEmail(String email, String otp) {
         try {
                 // Prepare email content
-            String subject = "6 Digit OTP for Verification";
+            String subject = "[OTP] Your OTP: " + otp;
             String templateContent = loadHtmlTemplate("OTPMail.html");
             String formatedContent = String.format(templateContent, otp);
 
