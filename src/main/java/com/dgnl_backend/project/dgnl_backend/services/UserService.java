@@ -144,6 +144,7 @@ public class UserService {
      * @throws UserNotEnableException if the user is disabled.
      * @throws PasswordMissMatchException if the password is incorrect.
      */
+    @Cacheable("login")
     public ResponseTemplate<?> login(LoginUserDTO loginUser, String deviceId, HttpServletRequest request) {
 
         // Get device fingerprint
