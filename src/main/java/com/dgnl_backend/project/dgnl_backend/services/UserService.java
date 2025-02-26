@@ -146,102 +146,83 @@ public class UserService {
      */
     @Cacheable("login")
     public ResponseTemplate<?> login(LoginUserDTO loginUser, String deviceId, HttpServletRequest request) {
-
         // Get device fingerprint
         String fingerprint = SecurityUtils.getDeviceFingerprint(request);
 
-        // Retrieve user by username
-        Optional<User> user = userRepository.findByUsernameOrEmail(loginUser.username(), loginUser.username());
-        if (!user.isPresent()) 
-            throw new UserNotFoundException("User does not exist");
+        // Retrieve user by username or email
+        User user = userRepository.findByUsernameOrEmail(loginUser.username(), loginUser.username())
+                .orElseThrow(() -> new UserNotFoundException("User does not exist"));
 
         // Check if the user is enabled
-        if (!user.get().getIsEnable()) 
+        if (!user.getIsEnable()) {
             throw new UserNotEnableException("User is disabled");
+        }
 
         // Validate password
-        if (!SecurityUtils.matchesPassword(loginUser.password(), user.get().getPassword())) 
+        if (!SecurityUtils.matchesPassword(loginUser.password(), user.getPassword())) {
             throw new PasswordMissMatchException("Invalid password");
+        }
 
-        // check if jwt is valid, if not then delete the token and throw an error
-        Optional<Token> token = tokenRepository.findByUserId(user.get().getId());
-
-        if (token.isPresent() && !jwtUtils.isValid(token.get().getToken())) {
-            tokenRepository.deleteById(tokenRepository.findByUserId(user.get().getId()).get().getId());
+        // Retrieve token and validate
+        Optional<Token> tokenOpt = tokenRepository.findByUserId(user.getId());
+        if (tokenOpt.isPresent() && !jwtUtils.isValid(tokenOpt.get().getToken())) {
+            tokenRepository.deleteById(tokenOpt.get().getId());
             throw new InvalidJWTException("Invalid JWT Token");
         }
-        // Check if a valid token already exists (to allow multi-device login)
-        // OTP will sent when
-        // 1. Have Token and no device -> verifyOtp will enable device and sent token
-        // 2. Have no Token and no device -> verifyOtp will generate token and enable device and sent
-        // 3. Have no Token and have device -> verifyOtp will generate token and sent token
-        // 4. device but not trusted
-        // Sent token back when have token and device
-        Optional<UserDevice> existingDevice = userDeviceRepository.findByUserAndFingerprintAndDeviceId(user.get(), fingerprint, deviceId);
 
-        // Have no token and no device
-        if (token.isEmpty() && UserDeviceService.isNoDevice(existingDevice, fingerprint)) {
-            // create device
-           if (existingDevice.isEmpty()){
-                UserDevice newDevice = new UserDevice();
-                newDevice.setUser(user.get());
-                newDevice.setDeviceId(deviceId);
-                newDevice.setFingerprint(fingerprint);
-                newDevice.setTrusted(false); // Not trusted yet
-                userDeviceRepository.save(newDevice);
-           }
-            
-            // sending otp
-            sendingOtp(user.get());
-            throw new SendingOTPException("Sending OTP. Check your email");
-        }
+        // Check if device exists
+        Optional<UserDevice> existingDevice = userDeviceRepository.findByUserAndFingerprintAndDeviceId(user, fingerprint, deviceId);
+        boolean isNewDevice = UserDeviceService.isNoDevice(existingDevice, fingerprint);
 
-        // Have no token and have device
-        // No need to make a new device just send the otp to make a new token
-        if (token.isEmpty() && !UserDeviceService.isNoDevice(existingDevice, fingerprint)){
-            // sending otp
-            sendingOtp(user.get());
-            throw new SendingOTPException("Sending OTP. Check your email");
-        }
-
-        // Have token and have no device
-        if (token.isPresent() && UserDeviceService.isNoDevice(existingDevice, fingerprint)){
-            if (UserDeviceService.isNoDevice(existingDevice, fingerprint)){
-                UserDevice newDevice = new UserDevice();
-                newDevice.setUser(user.get());
-                newDevice.setDeviceId(deviceId);
-                newDevice.setFingerprint(fingerprint);
-                newDevice.setTrusted(false); // Not trusted yet
-                userDeviceRepository.save(newDevice);
+        if (tokenOpt.isEmpty()) {
+            // Case 1 & 2: No token, needs OTP verification
+            if (isNewDevice) {
+                // Create new device record if needed
+                if (existingDevice.isEmpty()) {
+                    userDeviceRepository.save(new UserDevice(user, deviceId, fingerprint, false));
+                }
             }
-            
-            // sending otp
-            sendingOtp(user.get());
-            throw new SendingOTPException("Sending OTP. Check your email");
-        }
-        
-        // Device not trusted
-        if (!existingDevice.get().getTrusted()){
-            // sending otp
-            sendingOtp(user.get());
-            throw new SendingOTPException("Sending OTP. Check your email");
+            sendOtpAndThrow(user);
         }
 
-        // Have token and device
-        return new ResponseTemplate<LoginUserResponseDTO>(
-                new LoginUserResponseDTO(token.get().getToken()), 
-                "Login successful"
-            );
-    }
-    private void sendingOtp(User user){
-        // Check if OTP in redis
-        String otp = (String) redisTemplate.opsForValue().get("OTP_" + user.getUsername()); // Get OTP from Redis
-        // Generate and send OTP if token does not exist or is expired
-        if (otp == null){
-            otp = verificationService.generateOtp(user); // Generate OTP
-            redisService.saveOtp(otp, user.getUsername());
+        // Case 3: Token exists, but device is untrusted → OTP required
+        if (isNewDevice) {
+            userDeviceRepository.save(new UserDevice(user, deviceId, fingerprint, false));
+            sendOtpAndThrow(user);
         }
-        else {
+
+        // Case 4: Device exists but is not trusted → OTP required
+        if (!existingDevice.get().getTrusted()) {
+            sendOtpAndThrow(user);
+        }
+
+        // Valid login: Return token
+        return new ResponseTemplate<>(new LoginUserResponseDTO(tokenOpt.get().getToken()), "Login successful");
+    }
+
+    /**
+     * Sends OTP to the user and throws an exception.
+     * 
+     * @param user The user to send OTP to.
+     */
+    private void sendOtpAndThrow(User user) {
+        sendingOtp(user);
+        throw new SendingOTPException("Sending OTP. Check your email");
+    }
+
+    /**
+     * Generates and sends OTP to the user if not already in Redis.
+     *
+     * @param user The user to send OTP to.
+     */
+    private void sendingOtp(User user) {
+        String otpKey = "OTP_" + user.getUsername();
+        String otp = (String) redisTemplate.opsForValue().get(otpKey);
+
+        if (otp == null) {
+            otp = verificationService.generateOtp(user);
+            redisService.saveOtp(otp, user.getUsername());
+        } else {
             verificationService.sendOtpEmail(user.getEmail(), otp);
         }
     }

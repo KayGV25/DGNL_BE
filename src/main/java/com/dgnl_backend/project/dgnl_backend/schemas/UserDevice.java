@@ -40,6 +40,13 @@ public class UserDevice {
         this.trusted = trusted;
     }
 
+    public UserDevice(User user, String deviceId, String fingerprint, Boolean trusted) {
+        this.user = user;
+        this.deviceId = deviceId;
+        this.fingerprint = fingerprint;
+        this.trusted = trusted;
+    }
+
     public String getDeviceId(){
         return this.deviceId;
     }
