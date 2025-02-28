@@ -10,8 +10,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
 import com.dgnl_backend.project.dgnl_backend.repositories.UserRepository;
-import com.dgnl_backend.project.dgnl_backend.schemas.Role;
-import com.dgnl_backend.project.dgnl_backend.schemas.User;
+import com.dgnl_backend.project.dgnl_backend.schemas.identity.Role;
+import com.dgnl_backend.project.dgnl_backend.schemas.identity.User;
 
 /**
  * Service class for loading user details from the database.

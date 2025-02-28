@@ -1,4 +1,4 @@
-package com.dgnl_backend.project.dgnl_backend.schemas;
+package com.dgnl_backend.project.dgnl_backend.schemas.identity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -8,7 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "genders", schema = "public")
+@Table(name = "genders", schema = "identity")
 public class Gender {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

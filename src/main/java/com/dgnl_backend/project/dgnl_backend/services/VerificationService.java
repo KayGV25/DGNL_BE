@@ -25,9 +25,9 @@ import com.dgnl_backend.project.dgnl_backend.repositories.TokenRepository;
 import com.dgnl_backend.project.dgnl_backend.repositories.UserDeviceRepository;
 import com.dgnl_backend.project.dgnl_backend.repositories.UserRepository;
 import com.dgnl_backend.project.dgnl_backend.schemas.Email;
-import com.dgnl_backend.project.dgnl_backend.schemas.Token;
-import com.dgnl_backend.project.dgnl_backend.schemas.User;
-import com.dgnl_backend.project.dgnl_backend.schemas.UserDevice;
+import com.dgnl_backend.project.dgnl_backend.schemas.identity.Token;
+import com.dgnl_backend.project.dgnl_backend.schemas.identity.User;
+import com.dgnl_backend.project.dgnl_backend.schemas.identity.UserDevice;
 import com.dgnl_backend.project.dgnl_backend.utils.JWTUtils;
 import com.dgnl_backend.project.dgnl_backend.utils.SecurityUtils;
 
@@ -80,7 +80,7 @@ public class VerificationService {
         // Prepare email content
         String subject = "[EMAIL] Email Verification";
         String templateContent = loadHtmlTemplate("ActivateAccountMail.html");
-        String formatedContent = String.format(templateContent, verificationUrl, verificationUrl);
+        String formatedContent = String.format(templateContent, verificationUrl, verificationUrl, verificationUrl);
 
         // Log verification URL (Replace with actual mail sender)
         System.out.println(verificationUrl);

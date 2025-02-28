@@ -1,4 +1,4 @@
-package com.dgnl_backend.project.dgnl_backend.schemas;
+package com.dgnl_backend.project.dgnl_backend.schemas.identity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,7 +10,7 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "tokens", schema = "public")
+@Table(name = "tokens", schema = "identity")
 public class Token {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

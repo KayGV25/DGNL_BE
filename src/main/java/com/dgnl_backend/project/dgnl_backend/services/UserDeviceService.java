@@ -4,7 +4,7 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
-import com.dgnl_backend.project.dgnl_backend.schemas.UserDevice;
+import com.dgnl_backend.project.dgnl_backend.schemas.identity.UserDevice;
 
 @Service
 public class UserDeviceService {

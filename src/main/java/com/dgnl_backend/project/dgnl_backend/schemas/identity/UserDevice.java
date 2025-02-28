@@ -1,4 +1,4 @@
-package com.dgnl_backend.project.dgnl_backend.schemas;
+package com.dgnl_backend.project.dgnl_backend.schemas.identity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,7 +10,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "user_device", schema = "private")
+@Table(name = "user_devices", schema = "identity")
 public class UserDevice {
 
     @Id

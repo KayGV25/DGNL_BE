@@ -1,4 +1,4 @@
-package com.dgnl_backend.project.dgnl_backend.schemas;
+package com.dgnl_backend.project.dgnl_backend.schemas.identity;
 
 import java.sql.Date;
 import java.util.UUID;
@@ -14,7 +14,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "users", schema = "public")
+@Table(name = "users", schema = "identity")
 public class User {
 
     @Id
@@ -45,6 +45,9 @@ public class User {
     @Column(name = "grade_lv")
     private Integer gradeLv;
 
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
     @ManyToOne
     @JoinColumn(name = "role_id", referencedColumnName = "id")
     private Role role;
@@ -62,6 +65,7 @@ public class User {
         this.dob = dob;
         this.gradeLv = gradeLv;
         this.role = role;
+        this.avatarUrl = null;
     }
 
     // Getters and Setters

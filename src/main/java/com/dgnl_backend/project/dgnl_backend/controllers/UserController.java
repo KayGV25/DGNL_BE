@@ -50,7 +50,7 @@ public class UserController {
             userService.createUser(newUser);
         } catch (RuntimeException e) {
             System.out.println(e.getMessage());
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Username or Email already exists. Please choose a different username or email.");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("No template found for user registration. Please contact the administrator.");
