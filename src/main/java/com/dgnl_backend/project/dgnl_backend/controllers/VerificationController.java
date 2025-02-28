@@ -4,7 +4,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.dgnl_backend.project.dgnl_backend.dtos.ResponseTemplate;
-import com.dgnl_backend.project.dgnl_backend.services.VerificationService;
+import com.dgnl_backend.project.dgnl_backend.services.identity.VerificationService;
 
 import jakarta.servlet.http.HttpServletRequest;
 

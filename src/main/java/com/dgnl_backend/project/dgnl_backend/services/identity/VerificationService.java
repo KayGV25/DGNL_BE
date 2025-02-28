@@ -1,4 +1,4 @@
-package com.dgnl_backend.project.dgnl_backend.services;
+package com.dgnl_backend.project.dgnl_backend.services.identity;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -21,13 +21,14 @@ import com.dgnl_backend.project.dgnl_backend.dtos.ResponseTemplate;
 import com.dgnl_backend.project.dgnl_backend.dtos.user.response.LoginUserResponseDTO;
 import com.dgnl_backend.project.dgnl_backend.exceptions.token.ExpiredOTPException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.token.InvalidOTPException;
-import com.dgnl_backend.project.dgnl_backend.repositories.TokenRepository;
-import com.dgnl_backend.project.dgnl_backend.repositories.UserDeviceRepository;
-import com.dgnl_backend.project.dgnl_backend.repositories.UserRepository;
+import com.dgnl_backend.project.dgnl_backend.repositories.identity.TokenRepository;
+import com.dgnl_backend.project.dgnl_backend.repositories.identity.UserDeviceRepository;
+import com.dgnl_backend.project.dgnl_backend.repositories.identity.UserRepository;
 import com.dgnl_backend.project.dgnl_backend.schemas.Email;
 import com.dgnl_backend.project.dgnl_backend.schemas.identity.Token;
 import com.dgnl_backend.project.dgnl_backend.schemas.identity.User;
 import com.dgnl_backend.project.dgnl_backend.schemas.identity.UserDevice;
+import com.dgnl_backend.project.dgnl_backend.services.RedisService;
 import com.dgnl_backend.project.dgnl_backend.utils.JWTUtils;
 import com.dgnl_backend.project.dgnl_backend.utils.SecurityUtils;
 

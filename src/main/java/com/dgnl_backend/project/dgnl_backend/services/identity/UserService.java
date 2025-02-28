@@ -1,4 +1,4 @@
-package com.dgnl_backend.project.dgnl_backend.services;
+package com.dgnl_backend.project.dgnl_backend.services.identity;
 
 import java.io.IOException;
 import java.sql.Date;
@@ -27,16 +27,17 @@ import com.dgnl_backend.project.dgnl_backend.exceptions.user.EmailInvalidExcepti
 import com.dgnl_backend.project.dgnl_backend.exceptions.user.PasswordMissMatchException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.user.UserNotEnableException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.user.UserNotFoundException;
-import com.dgnl_backend.project.dgnl_backend.repositories.GenderRepository;
-import com.dgnl_backend.project.dgnl_backend.repositories.RoleRepository;
-import com.dgnl_backend.project.dgnl_backend.repositories.TokenRepository;
-import com.dgnl_backend.project.dgnl_backend.repositories.UserDeviceRepository;
-import com.dgnl_backend.project.dgnl_backend.repositories.UserRepository;
+import com.dgnl_backend.project.dgnl_backend.repositories.identity.GenderRepository;
+import com.dgnl_backend.project.dgnl_backend.repositories.identity.RoleRepository;
+import com.dgnl_backend.project.dgnl_backend.repositories.identity.TokenRepository;
+import com.dgnl_backend.project.dgnl_backend.repositories.identity.UserDeviceRepository;
+import com.dgnl_backend.project.dgnl_backend.repositories.identity.UserRepository;
 import com.dgnl_backend.project.dgnl_backend.schemas.identity.Gender;
 import com.dgnl_backend.project.dgnl_backend.schemas.identity.Role;
 import com.dgnl_backend.project.dgnl_backend.schemas.identity.Token;
 import com.dgnl_backend.project.dgnl_backend.schemas.identity.User;
 import com.dgnl_backend.project.dgnl_backend.schemas.identity.UserDevice;
+import com.dgnl_backend.project.dgnl_backend.services.RedisService;
 import com.dgnl_backend.project.dgnl_backend.utils.JWTUtils;
 import com.dgnl_backend.project.dgnl_backend.utils.PatternMatching;
 import com.dgnl_backend.project.dgnl_backend.utils.SecurityUtils;

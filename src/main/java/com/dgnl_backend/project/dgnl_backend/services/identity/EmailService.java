@@ -1,4 +1,4 @@
-package com.dgnl_backend.project.dgnl_backend.services;
+package com.dgnl_backend.project.dgnl_backend.services.identity;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

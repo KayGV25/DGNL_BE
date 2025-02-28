@@ -7,9 +7,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-import com.dgnl_backend.project.dgnl_backend.repositories.UserRepository;
+import com.dgnl_backend.project.dgnl_backend.repositories.identity.UserRepository;
 import com.dgnl_backend.project.dgnl_backend.schemas.identity.Role;
 import com.dgnl_backend.project.dgnl_backend.schemas.identity.User;
 
@@ -17,7 +17,7 @@ import com.dgnl_backend.project.dgnl_backend.schemas.identity.User;
  * Service class for loading user details from the database.
  * Implements {@link UserDetailsService} to provide authentication details.
  */
-@Component
+@Service
 public class UserDetailService implements UserDetailsService {
     
     @Autowired

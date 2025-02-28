@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.dgnl_backend.project.dgnl_backend.exceptions.token.TokenNotFoundException;
-import com.dgnl_backend.project.dgnl_backend.services.UserService;
+import com.dgnl_backend.project.dgnl_backend.services.identity.UserService;
 
 @RestController
 @RequestMapping("/auth/user")

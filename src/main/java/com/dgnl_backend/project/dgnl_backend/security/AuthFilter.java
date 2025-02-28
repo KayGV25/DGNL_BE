@@ -11,7 +11,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.dgnl_backend.project.dgnl_backend.repositories.TokenRepository;
+import com.dgnl_backend.project.dgnl_backend.repositories.identity.TokenRepository;
 import com.dgnl_backend.project.dgnl_backend.services.UserDetailService;
 import com.dgnl_backend.project.dgnl_backend.utils.JWTUtils;
 

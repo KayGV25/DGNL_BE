@@ -9,7 +9,7 @@ import com.dgnl_backend.project.dgnl_backend.exceptions.token.SendingOTPExceptio
 import com.dgnl_backend.project.dgnl_backend.exceptions.user.PasswordMissMatchException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.user.UserNotEnableException;
 import com.dgnl_backend.project.dgnl_backend.exceptions.user.UserNotFoundException;
-import com.dgnl_backend.project.dgnl_backend.services.UserService;
+import com.dgnl_backend.project.dgnl_backend.services.identity.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
 

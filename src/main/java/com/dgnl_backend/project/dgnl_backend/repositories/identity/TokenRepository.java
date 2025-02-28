@@ -1,4 +1,4 @@
-package com.dgnl_backend.project.dgnl_backend.repositories;
+package com.dgnl_backend.project.dgnl_backend.repositories.identity;
 
 import java.util.Optional;
 import java.util.UUID;
