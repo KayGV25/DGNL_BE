@@ -3,77 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OTP Verification</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
-        body{
-            background: #e4e4e4;
-            color: black;
-            font-size: 20px;
-            font-family: 'Roboto', sans-serif;
-            margin: 0;
-        }
-
-        #root{
-            width: 500px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        #root > * {
-            padding-left: 1ch;
-        }
-
-        .activate-text{
-            font-size: 1.3em;
-            color: black;
-            margin-bottom: 20px;
-        }
-
-        .header{
-            display: flex;
-            align-items: center;
-            background-color: cadetblue;
-            width: 100%%;
-        }
-
-        .header-text{
-            font-weight: bold;
-            font-size: 1.7em;
-            margin: 0.8ch 0;
-        }
-
-        .btn{
-            text-decoration: none;
-        }
-
-        button{
-            background-color: cadetblue;
-            padding: 0.8ch 3ch;
-            color: white;
-            border-radius: 5px;
-        }
-
-    </style>
+    <title>Activate Your Account</title>
 </head>
-<body>
-    <div id="root">
-        <header class="header">
-            <p class="header-text">
-                Luyện đề ĐXH
-            </p>
-        </header>
-        <h1>Activate account</h2>
-        <p class="activate-text">Here is your activate account link:
-            <a href='%s'>%s</a>
-        </p>
-        <a href='%s' class="btn"><button>Click Here</button></a>
-    </div>
-</body>
-<script>
+<body style="margin:0; padding:0; background-color:#e4e4e4; font-family:Arial, sans-serif;">
 
-</script>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#e4e4e4">
+    <tr>
+        <td align="center">
+            <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="margin: 20px auto; border-radius: 5px; padding: 20px;">
+                <!-- Header -->
+                <tr>
+                    <td align="center" bgcolor="cadetblue" style="padding: 15px;">
+                        <h1 style="color: white; margin: 0; font-size: 24px;">Luyện đề ĐXH</h1>
+                    </td>
+                </tr>
+
+                <!-- Activation Message -->
+                <tr>
+                    <td align="center" style="padding: 20px;">
+                        <h2 style="color: black; margin: 0;">Activate Your Account</h2>
+                        <p style="font-size: 18px; color: black; margin-bottom: 20px;">
+                            Click the button below to activate your account:
+                        </p>
+                        <a href="{{ACTIVATION_LINK}}" style="text-decoration: none;">
+                            <button style="width: 200px; background-color: cadetblue; padding: 12px; color: white; border-radius: 5px; font-size: 16px; border: none; cursor: pointer;">
+                                Activate Account
+                            </button>
+                        </a>
+                        <p style="font-size: 14px; color: gray; margin-top: 20px;">
+                            If the button doesn't work, copy and paste the link below in your browser:
+                        </p>
+                        <p style="word-wrap: break-word; font-size: 14px; color: blue;">
+                            <a href="{{ACTIVATION_LINK}}" style="color: blue; text-decoration: none;">{{ACTIVATION_LINK}}</a>
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+</body>
 </html>

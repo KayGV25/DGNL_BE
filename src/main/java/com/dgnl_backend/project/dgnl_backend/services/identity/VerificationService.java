@@ -81,7 +81,8 @@ public class VerificationService {
         // Prepare email content
         String subject = "[EMAIL] Email Verification";
         String templateContent = loadHtmlTemplate("ActivateAccountMail.html");
-        String formatedContent = String.format(templateContent, verificationUrl, verificationUrl, verificationUrl);
+        // String formatedContent = String.format(templateContent, verificationUrl, verificationUrl, verificationUrl);
+        String formatedContent = templateContent.replace("{{ACTIVATION_LINK}}", verificationUrl);
 
         // Log verification URL (Replace with actual mail sender)
         System.out.println(verificationUrl);
@@ -140,7 +141,9 @@ public class VerificationService {
                 // Prepare email content
             String subject = "[OTP] Your OTP: " + otp;
             String templateContent = loadHtmlTemplate("OTPMail.html");
-            String formatedContent = String.format(templateContent, otp);
+            // String formatedContent = String.format(templateContent, otp);
+            String formatedContent = templateContent.replace("{{OTP}}", otp);
+
 
             // Placeholder for sending email
             // Use JavaMailSender to send email
