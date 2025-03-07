@@ -10,6 +10,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,6 +75,7 @@ public class UserService {
     private RedisTemplate<String, Object> redisTemplate;
 
     private static final String EMAIL_REGEX = "^[a-zA-Z0-9_!#$%&'*+/=?`{|}~^.-]+@[a-zA-Z0-9.-]+$";
+    private static final Integer TOKENS_ADDING_AMOUNT = 20;
 
     /**
      * Retrieves a list of all users from the database.
@@ -127,6 +129,7 @@ public class UserService {
             newUser.gradeLv(),
             role
         );
+        user.setToken(TOKENS_ADDING_AMOUNT);
 
         // Save user to the database
         userRepository.save(user);
@@ -274,5 +277,11 @@ public class UserService {
         );
 
         return new ResponseTemplate<UserInfoResponseDTO>(userInfo, "Success");
+    }
+
+    @Transactional
+    @Scheduled(cron = "0 0 0 1 * ?")
+    public void addTokensToAllUsers() {
+        userRepository.addTokensToAllUsers(TOKENS_ADDING_AMOUNT);
     }
 }
