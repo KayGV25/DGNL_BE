@@ -28,14 +28,16 @@ public class JWTUtils {
         return null;
     }
 
-    public String generate(String userId, Integer ttls) {
+    public String generate(String userId, String role, Integer ttls) {
         Date currentDate = new Date();
         long currentTime = currentDate.getTime();
+
         return Jwts.builder()
             .subject(userId)
+            .claim("role", role) // Add role to the token
             .issuedAt(currentDate)
-            .expiration(new Date(currentTime + ttls)) // ttl = 1 year
-            .encryptWith(createKey(secret), Jwts.ENC.A256GCM)
+            .expiration(new Date(currentTime + ttls)) // TTL (e.g., 1 year)
+            .signWith(createKey(secret)) // Sign token
             .compact();
     }
 

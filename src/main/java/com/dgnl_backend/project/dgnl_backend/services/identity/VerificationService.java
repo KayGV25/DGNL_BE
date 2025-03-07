@@ -235,7 +235,7 @@ public class VerificationService {
         String token;
         if (!tokenRepository.existsByUserId(userId)){
             // Generate JWT token (valid for 1 year)
-            token = jwtUtils.generate(userId.toString(), 1000 * (60 * 60 * 24 * 365));
+            token = jwtUtils.generate(userId.toString(), userRepository.findById(userId).get().getRole().getRoleName(), 1000 * (60 * 60 * 24 * 365));
             // Save the JWT token in the database
             tokenRepository.save(new Token(user, token));
         } else {
